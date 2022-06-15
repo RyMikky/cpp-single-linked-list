@@ -8,6 +8,8 @@
 #include <iostream>
 #include <stdexcept>
 
+/*Прошу прочитать комментарий в commit*/
+
 template <typename Type>
 class SingleLinkedList {
     // Узел списка
@@ -60,6 +62,7 @@ class SingleLinkedList {
         }
 
         BasicIterator& operator++() noexcept {
+            assert(this != nullptr);
             node_ = node_->next_node;
             return *this;
         }
@@ -111,9 +114,14 @@ public:
 
     SingleLinkedList& operator=(const SingleLinkedList& rhs) {
         assert(head_.next_node != rhs.head_.next_node);
-        SingleLinkedList tmp(rhs);
-        swap(tmp);
-        return *this;
+        if (this == &rhs) {
+            return *this;
+        }
+        else {
+            SingleLinkedList tmp(rhs);
+            swap(tmp);
+            return *this;
+        }
     }
 
     // Обменивает содержимое списков за время O(1)
@@ -172,7 +180,7 @@ public:
 
     // Сообщает, пустой ли список за время O(1)
     [[nodiscard]] bool IsEmpty() const noexcept {
-        return size_ == 0u ? true : false;
+        return size_ == 0u;
     }
 
     // Вставка в конец
@@ -214,101 +222,40 @@ public:
 
     // удаление элемента с начала
     void PopFront() noexcept {
-        Node* buffer = head_.next_node;
-        head_.next_node = head_.next_node->next_node;
-        delete buffer;
-
-        --size_;
-    }
-
-    // вставка элемента в список на место по индексу, со смещением остальных значений
-    void Insert(const int pos, const Type& value) {
-        if (pos == 0) {
-            PushFront(value);
-        }
-        else if (pos == size_) {
-            PushBack(value);
+        if (IsEmpty()) {
+            return;
         }
         else {
-            try {
-                if (pos > size_) {
-                    throw pos;
-                }
+            Node* buffer = head_.next_node;
+            head_.next_node = head_.next_node->next_node;
+            delete buffer;
 
-                int counter = 0;
-                Node* buffer = &head_;
-                while (buffer->next_node != nullptr)
-                {
-                    if (counter == pos) {
-                        break;
-                    }
-                    else {
-                        buffer = buffer->next_node;
-                        ++counter;
-                    }
-                }
-                buffer->next_node = new Node(value, buffer->next_node);
-                ++size_;
-            }
-            catch (const int& ex) {
-                std::cout << "Position [" << ex << "] is out of range" << std::endl;
-                std::cout << "Passing data to PushBack()" << std::endl;
-                PushBack(value);
-            }
+            --size_;
         }
     }
 
-    // удаление элемента списка с позицией по индексу
-    void Remove(const int pos) {
-        if (pos == 0) {
-            PopFront();
-        }
-        else if (pos == size_ - 1) {
-            PopBack();
-        }
-        else {
-            try {
-                if (pos > GetSize()) {
-                    throw pos;
-                }
-
-                int counter = 0;
-                Node* buffer = &head_;
-                while (buffer->next_node != nullptr)
-                {
-                    if (counter == pos) {
-                        break;
-                    }
-                    else {
-                        buffer = buffer->next_node;
-                        ++counter;
-                    }
-                }
-                Node* removed_element = buffer->next_node;
-                buffer->next_node = buffer->next_node->next_node;
-                delete removed_element;
-                --size_;
-            }
-            catch (const int& ex) {
-                std::cout << "Position [" << ex << "] is out of range" << std::endl;
-                std::cout << "Passing request to PopBack()" << std::endl;
-                PopBack();
-            }
-        }
-    }
-
-    // вставить перед, возвращает итератор на вставленный элемент
+    // вставить после, возвращает итератор на вставленный элемент
     Iterator InsertAfter(ConstIterator pos, const Type& value) {
-        Node* insert_node = new Node(value, pos.node_->next_node);
-        pos.node_->next_node = insert_node;
-        ++size_;
-        return BasicIterator<Type>{ insert_node };
+        assert(pos != this->end());
+        if (pos == this->before_begin() || pos == this->cbefore_begin()) {
+            PushFront(value);
+            return this->begin();
+        }
+        else {
+            Node* insert_node = new Node(value, pos.node_->next_node);
+            pos.node_->next_node = insert_node;
+            ++size_;
+            return BasicIterator<Type>{ insert_node };
+        }
     }
 
     // удалить после, возвращает итератор на следующее значение после удаленного элемента
     Iterator EraseAfter(ConstIterator pos) noexcept {
+        assert(pos != this->end());
+        assert(size_ != 0u);
         if (pos == before_begin() || pos == cbefore_begin()) {
             PopFront();
+            return this->begin();
         }
         else {
             Node* buffer = pos.node_->next_node;
@@ -320,24 +267,6 @@ public:
         return BasicIterator<Type>{ const_cast<Node*>(pos.node_->next_node) };
     }
 
-    // Печать значений листа в линию для стандартных типов
-    void PrintInLine() {
-        try {
-            if (this->begin() == this->end()) {
-                throw size_;
-            }
-
-            std::cout << "List Values : ";
-            for (auto it = this->begin(); it != this->end(); it++) {
-                std::cout << *it << ' ';
-            }
-            std::cout << '\n';
-        }
-        catch (const size_t&) {
-            std::cout << "List can't be printed \nList is Empty" << std::endl;
-        }
-    }
-
     // Очистка списка
     void Clear() {
         while (head_.next_node != nullptr)
@@ -346,36 +275,7 @@ public:
             head_.next_node = head_.next_node->next_node;
             delete ptr_buffer;
         }
-
-        if (head_.next_node == nullptr) {
-            size_ = 0u;
-        }
-    }
-
-    // доступ по квадратным скобкам
-    Type& operator[](const int index) {
-        try {
-            if (index >= GetSize() || index < 0) {
-                throw index;
-            }
-
-            int counter = 0;
-            Node* buffer = head_.next_node;
-            while (buffer->next_node != nullptr)
-            {
-                if (counter == index) {
-                    return buffer->value;
-                }
-                else {
-                    buffer = buffer->next_node;
-                    ++counter;
-                }
-            }
-        }
-        catch (const int& ex) {
-            std::cout << "Index [" << ex << "] is out of range" << std::endl;
-            std::terminate();
-        }
+        size_ = 0u;
     }
 
 private:
