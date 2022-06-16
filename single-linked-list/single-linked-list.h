@@ -8,8 +8,6 @@
 #include <iostream>
 #include <stdexcept>
 
-/*Прошу прочитать комментарий в commit*/
-
 template <typename Type>
 class SingleLinkedList {
     // Узел списка
@@ -106,14 +104,14 @@ public:
         assert(size_ == 0 && head_.next_node == nullptr);
         SingleLinkedList tmp;
 
-        for (auto it = other.begin(); it != other.end(); it++) {
-            tmp.PushBack(*it);
+        for (auto it = other.end() - 1; it >= other.begin(); --it) {
+            tmp.PushFront(*it);
         }
+
         swap(tmp);
     }
 
     SingleLinkedList& operator=(const SingleLinkedList& rhs) {
-        assert(head_.next_node != rhs.head_.next_node);
         if (this == &rhs) {
             return *this;
         }
@@ -164,7 +162,7 @@ public:
     [[nodiscard]] Iterator before_begin() noexcept {
         return BasicIterator<Type>{ &head_ };
     }
-
+    
     [[nodiscard]] ConstIterator cbefore_begin() const noexcept {
         return BasicIterator<Type>{ const_cast<Node*>(&head_) };
     }
@@ -183,55 +181,21 @@ public:
         return size_ == 0u;
     }
 
-    // Вставка в конец
-    void PushBack(const Type& value) {
-        if (head_.next_node == nullptr) {
-            head_.next_node = new Node(value, nullptr);
-        }
-        else {
-            Node* current = head_.next_node;
-            while (current->next_node != nullptr)
-            {
-                current = current->next_node;
-            }
-            current->next_node = new Node(value, nullptr);
-        }
-        ++size_;
-    }
-
     // Вставка в начало
     void PushFront(const Type& value) {
         head_.next_node = new Node(value, head_.next_node);
         ++size_;
     }
 
-    // удаление элемента с конца
-    void PopBack() {
-        Node* current = head_.next_node;
-        while (current->next_node->next_node != nullptr)
-        {
-            current = current->next_node;
-        }
+    // удаление элемента с начала
+    void PopFront() noexcept {
+        assert(!IsEmpty());
 
-        Node* buffer = current->next_node;
-        current->next_node = nullptr;
+        Node* buffer = head_.next_node;
+        head_.next_node = head_.next_node->next_node;
         delete buffer;
 
         --size_;
-    }
-
-    // удаление элемента с начала
-    void PopFront() noexcept {
-        if (IsEmpty()) {
-            return;
-        }
-        else {
-            Node* buffer = head_.next_node;
-            head_.next_node = head_.next_node->next_node;
-            delete buffer;
-
-            --size_;
-        }
     }
 
     // вставить после, возвращает итератор на вставленный элемент
@@ -252,7 +216,7 @@ public:
     // удалить после, возвращает итератор на следующее значение после удаленного элемента
     Iterator EraseAfter(ConstIterator pos) noexcept {
         assert(pos != this->end());
-        assert(size_ != 0u);
+        assert(!IsEmpty());
         if (pos == before_begin() || pos == cbefore_begin()) {
             PopFront();
             return this->begin();
